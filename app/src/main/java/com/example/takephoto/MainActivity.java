@@ -10,11 +10,15 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -22,11 +26,19 @@ import android.widget.TextView;
 
 import org.w3c.dom.Text;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import static android.os.Environment.DIRECTORY_PICTURES;
+
 public class MainActivity extends AppCompatActivity {
 
     private Button Take_picture;
     private Button Save_picture;
     private ImageView textView;
+    Bitmap imageBitmap;
     static final int REQUEST_IMAGE_CAPTURE = 1;
 
     @Override
@@ -55,9 +67,35 @@ public class MainActivity extends AppCompatActivity {
         Save_picture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                
+                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        == PackageManager.PERMISSION_DENIED){
+                    ActivityCompat.requestPermissions(MainActivity.this, new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE}, 100);
+                }else {
+                    saveBitmap(imageBitmap);
+                }
+
             }
         });
+    }
+    public void saveBitmap(Bitmap imageBitmap) {
+        Log.e("guardado", "保存图片");
+        File f = new File(Environment.getExternalStoragePublicDirectory(DIRECTORY_PICTURES).getAbsolutePath(), "picName");
+        if (f.exists()) {
+            f.delete();
+        }
+        try {
+            FileOutputStream out = new FileOutputStream(f);
+            imageBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            out.flush();
+            out.close();
+            Log.i("guardado", "已经保存");
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 
     ActivityResultLauncher<Intent> activityResultLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
@@ -66,8 +104,9 @@ public class MainActivity extends AppCompatActivity {
                 public void onActivityResult(ActivityResult result) {
                     Intent data = result.getData();
                     Bundle extras = data.getExtras();
-                    Bitmap imageBitmap = (Bitmap) extras.get("data");
+                    imageBitmap = (Bitmap) extras.get("data");
                     textView.setImageBitmap(imageBitmap);
+
                 }
             });
 }
